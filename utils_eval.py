@@ -25,9 +25,7 @@ def crop_data(args, data, pred):
     # # crop the scene (x-y) and remove the ground (z)
     # MAKE SURE THIS IS THE SAME as Dynamic 3D Scene Analysis by Point Cloud Accumulation, ECCV2022
     raw_points, time_indice = data['raw_points'], data['time_indice']
-    sd_labels, fb_labels = data['sd_labels'], data['fb_labels']
-    ego_motion_gt = data['ego_motion_gt']
-    scene_flow = data['scene_flow']
+    ego_motion_gt = data['ego_poses']
     data_path = data['data_path']
 
     idxs_xy = np.logical_and(np.abs(raw_points[:,0]) < args.range_x, np.abs(raw_points[:,1]) < args.range_y)
@@ -39,9 +37,6 @@ def crop_data(args, data, pred):
     # print('crop data: ', raw_points.shape, sd_labels.shape, fb_labels.shape, scene_flow.shape, time_indice.shape, pred.shape)
     raw_points_crop =raw_points[idxs_xyz]
     time_indice_crop =time_indice[idxs_xyz]
-    sd_labels_crop =sd_labels[idxs_xyz]
-    fb_labels_crop =fb_labels[idxs_xyz]
-    scene_flow_crop =scene_flow[idxs_xyz]
     pred_crop =pred[idxs_xyz]
 
     # # # # # # # # # # # visualize:
@@ -53,10 +48,7 @@ def crop_data(args, data, pred):
     data_crop = {
         'raw_points': raw_points_crop,
         'time_indice': time_indice_crop,
-        'sd_labels': sd_labels_crop,
-        'fb_labels': fb_labels_crop,
         'ego_motion_gt': ego_motion_gt,
-        'scene_flow': scene_flow_crop,
         'data_path': data_path
     }
 

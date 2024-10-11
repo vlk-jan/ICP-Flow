@@ -6,7 +6,6 @@ import seaborn as sns
 import scipy
 import parmap
 import warnings
-import torchist
 import time
 from timeit import default_timer as timer
 import matplotlib.pyplot as plt

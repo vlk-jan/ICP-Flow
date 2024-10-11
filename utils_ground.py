@@ -2,7 +2,6 @@ import random
 import numpy as np
 import os
 import sys
-import hdbscan
 import open3d as o3d
 from utils_visualization import visualize_pcd
 try:

@@ -20,9 +20,9 @@ import matplotlib.pyplot as plt
 import plotly
 from tqdm import tqdm
 import torch
+from pathlib import Path
 import plotly.graph_objs as go
-from dataset_pca import Dataset_pca
-from dataset_argo import Dataset_argo
+from dataset_valeo import Dataset_valeo
 from utils_track import track
 from utils_flow import flow_estimation
 from utils_eval import AverageMeter, calculate_metrics
@@ -157,6 +157,8 @@ if __name__ == "__main__":
         sf_dataset = Dataset_pca(args)
     elif args.dataset in ['argo']:
         sf_dataset = Dataset_argo(args)
+    elif args.dataset in ['scala3', 'pone']:
+        sf_dataset = Dataset_valeo(args)
     kwargs = {
         "num_workers": args.num_workers,
         "pin_memory": True,
@@ -183,7 +185,7 @@ if __name__ == "__main__":
     start_time = time.time()
     for k, batch in enumerate(data_loader):
         data, points_src, points_dst, labels_src, labels_dst = batch[0]
-        ego_poses = data['ego_poses']
+        ego_poses = data['ego_motion_gt']
         pairs_t = []
         transformations_t = []
         for i, (point_src, point_dst, label_src, label_dst) in enumerate(zip(points_src, points_dst, labels_src, labels_dst)):
@@ -249,9 +251,6 @@ if __name__ == "__main__":
                         'transformations': transformations, 
                         'flow': flow,
                         'pose': ego_poses[j],
-                        'sd_label': data['sd_labels'][data['time_indice']==j],
-                        'fb_label': data['fb_labels'][data['time_indice']==j],
-                        'scene_flow': data['scene_flow'][data['time_indice']==j, 0:3],
                         } 
                 debug_frame(args, result)
 
@@ -260,56 +259,58 @@ if __name__ == "__main__":
         flows = np.vstack(flows)
         print(f'Processed sample {k}/{len(sf_dataset.seq_paths)}, {data["data_path"]}.')
         if args.if_save:
-            for folder in ['train', 'val', 'test']:
-                if folder in data['data_path']:
-                    path_flow = data['data_path']
-                    if args.if_kiss_icp:
-                        path_flow = path_flow.replace(folder, os.path.join(folder+'_icp_flow'))
-                    else:
-                        path_flow = path_flow.replace(folder, os.path.join(folder+'_icp_flow_ego'))
+            # for folder in ['train', 'val', 'test']:
+            #     if folder in data['data_path']:
+            #         path_flow = data['data_path']
+            #         if args.if_kiss_icp:
+            #             path_flow = path_flow.replace(folder, os.path.join(folder+'_icp_flow'))
+            #         else:
+            #             path_flow = path_flow.replace(folder, os.path.join(folder+'_icp_flow_ego'))
 
-                    if args.if_adjacent:
-                        path_flow = path_flow.replace(folder, os.path.join(folder+'_adjacent'))
-                    elif args.if_temporal:
-                        path_flow = path_flow.replace(folder, os.path.join(folder+'_temporal'))
-                    else: 
-                        pass
-                    break
-            assert path_flow!=data['data_path']
+            #         if args.if_adjacent:
+            #             path_flow = path_flow.replace(folder, os.path.join(folder+'_adjacent'))
+            #         elif args.if_temporal:
+            #             path_flow = path_flow.replace(folder, os.path.join(folder+'_temporal'))
+            #         else: 
+            #             pass
+            #         break
+            # assert path_flow!=data['data_path']
+            path_flow = Path(data['data_path'])
+            path_flow = path_flow.parent.parent / (args.dataset + "_flow") / path_flow.stem.replace("data", "flow")
             if not os.path.exists(os.path.dirname(path_flow)):
                 os.makedirs(os.path.dirname(path_flow), exist_ok=True)
             np.savez_compressed(path_flow, 
                                 scene_flow = flows, 
                                 ego_motion = ego_poses,
                                 )
-        metrics_per_frame = calculate_metrics(args, data, flows, metrics_per_frame)
+        # metrics_per_frame = calculate_metrics(args, data, flows, metrics_per_frame)
 
     ##################################################################################################################################################
-    print(f'################# Results over the entire dataset #####################################')
-    for k in range(0, args.num_frames+1):
-        for metric in ['overall', 'static', 'static_bg', 'static_fg', 'dynamic', 'dynamic_fg']:
-            metric_name = metric + f'_{k:d}'
-            print(f'{metric_name:12}, EPE3D: {metrics_per_frame[metric_name].epe_avg:.6f}, \
-                  ACC3DS: {metrics_per_frame[metric_name].accs_avg:.6f}, \
-                  ACC3DR: {metrics_per_frame[metric_name].accr_avg:.6f}, \
-                  Outlier: {metrics_per_frame[metric_name].outlier_avg:.6f}, \
-                  Routlier: {metrics_per_frame[metric_name].Routlier_avg:.6f}.')
+    # print(f'################# Results over the entire dataset #####################################')
+    # for k in range(0, args.num_frames+1):
+    #     for metric in ['overall', 'static', 'static_bg', 'static_fg', 'dynamic', 'dynamic_fg']:
+    #         metric_name = metric + f'_{k:d}'
+    #         print(f'{metric_name:12}, EPE3D: {metrics_per_frame[metric_name].epe_avg:.6f}, \
+    #               ACC3DS: {metrics_per_frame[metric_name].accs_avg:.6f}, \
+    #               ACC3DR: {metrics_per_frame[metric_name].accr_avg:.6f}, \
+    #               Outlier: {metrics_per_frame[metric_name].outlier_avg:.6f}, \
+    #               Routlier: {metrics_per_frame[metric_name].Routlier_avg:.6f}.')
 
-    if args.if_save:
-        metrics_all = {}
-        for k in range(0, args.num_frames+1):
-            for metric in ['overall', 'static', 'static_bg', 'static_fg', 'dynamic', 'dynamic_fg']:
-                metrics_all['EPE3D' + metric + f'_{k:d}'] = metrics_per_frame[metric + f'_{k:d}'].epe_data,
-                metrics_all['ACC3DS_' + metric + f'_{k:d}'] = metrics_per_frame[metric + f'_{k:d}'].accs_data,
-                metrics_all['ACC3DR_' + metric + f'_{k:d}'] = metrics_per_frame[metric + f'_{k:d}'].accr_data,
-                metrics_all['OUTLIER_' + metric + f'_{k:d}'] = metrics_per_frame[metric + f'_{k:d}'].outlier_data,
-                metrics_all['ROUTLIER_' + metric + f'_{k:d}'] = metrics_per_frame[metric + f'_{k:d}'].Routlier_data,
+    # if args.if_save:
+    #     metrics_all = {}
+    #     for k in range(0, args.num_frames+1):
+    #         for metric in ['overall', 'static', 'static_bg', 'static_fg', 'dynamic', 'dynamic_fg']:
+    #             metrics_all['EPE3D' + metric + f'_{k:d}'] = metrics_per_frame[metric + f'_{k:d}'].epe_data,
+    #             metrics_all['ACC3DS_' + metric + f'_{k:d}'] = metrics_per_frame[metric + f'_{k:d}'].accs_data,
+    #             metrics_all['ACC3DR_' + metric + f'_{k:d}'] = metrics_per_frame[metric + f'_{k:d}'].accr_data,
+    #             metrics_all['OUTLIER_' + metric + f'_{k:d}'] = metrics_per_frame[metric + f'_{k:d}'].outlier_data,
+    #             metrics_all['ROUTLIER_' + metric + f'_{k:d}'] = metrics_per_frame[metric + f'_{k:d}'].Routlier_data,
                 
-        metrics_file = 'metrics_' + args.dataset + '_' + args.split
-        if args.if_kiss_icp: metrics_file += f'_icp'
-        metrics_file += '_' + args.identifier + '.npz'
-        np.savez(metrics_file, **metrics_all)
-        print(f'save metric file zip: {metrics_file}')
+    #     metrics_file = 'metrics_' + args.dataset + '_' + args.split
+    #     if args.if_kiss_icp: metrics_file += f'_icp'
+    #     metrics_file += '_' + args.identifier + '.npz'
+    #     np.savez(metrics_file, **metrics_all)
+    #     print(f'save metric file zip: {metrics_file}')
     print('end processing at: ', str(datetime.datetime.now()))
     print('total time (hours): ', (time.time()-start_time)/3600.0)
     

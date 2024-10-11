@@ -2,31 +2,8 @@
 import numpy as np
 import os
 import sys
-import hdbscan
 import open3d as o3d
 from utils_visualization import visualize_pcd, visualize_pcd_multiple, visualize_pcd_plotly
-from utils_ground import segment_ground, segment_ground_open3d, segment_ground_pypatchworkpp
-
-def cluster_hdbscan(args, points):
-    # clusterer = hdbscan.HDBSCAN(min_cluster_size=args.min_cluster_size, min_samples=None, cluster_selection_epsilon=args.epsilon)
-    clusterer = hdbscan.HDBSCAN(algorithm='best', alpha=1., approx_min_span_tree=True,
-                                gen_min_span_tree=True, leaf_size=100,
-                                metric='euclidean', min_cluster_size=args.min_cluster_size, min_samples=None
-                            )
-    clusterer.fit(points[:, 0:3])
-    labels = clusterer.labels_.copy()
-
-    lbls, counts = np.unique(labels, return_counts=True)
-    # print('max num points per segment: ', max(counts))
-    cluster_info = np.array(list(zip(lbls[1:], counts[1:])))
-    cluster_info = cluster_info[cluster_info[:,1].argsort()]
-    # print(f'clustering, min size: {cluster_info[0, 1]}, max_size: {cluster_info[-1, 1]}')
-
-    # Let op: there might be fewer cluster than predefined n_clusters
-    clusters_labels = cluster_info[::-1][:args.num_clusters, 0]
-    labels[np.in1d(labels, clusters_labels, invert=True)] = -1 # unclustered points
-
-    return labels
 
 # # # form SegContrast
 def cluster_dbscan(args, points):
@@ -50,7 +27,7 @@ def cluster_dbscan(args, points):
 def cluster_pcd(args, points, idxs_nonground):
 
     if args.if_hdbscan:
-        labels_nonground = cluster_hdbscan(args, points[idxs_nonground])
+        raise ValueError("HDBSCAN not supported")
     else:
         labels_nonground = cluster_dbscan(args, points[idxs_nonground])
 

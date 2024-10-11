@@ -7,7 +7,6 @@ import matplotlib.pyplot as plt
 import open3d as o3d
 from utils_visualization import visualize_pcd, visualize_pcd_multiple, visualize_pcd_plotly, draw_registration_result
 from utils_helper import transform_points
-from utils_ground import segment_ground_thres, segment_ground_pypatchworkpp
 
 from kiss_icp.kiss_icp import KissICP
 from kiss_icp.config import KISSConfig
