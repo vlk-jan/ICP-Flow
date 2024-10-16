@@ -40,7 +40,7 @@ if __name__ == "__main__":
     np.random.seed(0)
     o3d.utility.random.seed(0)    # fix open3d seed, only in open3d>=0.16.
     multiprocessing.set_start_method('forkserver') # or 'spawn'?
-    
+
     # Parse hyperparameters
     parser = argparse.ArgumentParser(description='SceneFlow')
 
@@ -122,7 +122,7 @@ if __name__ == "__main__":
                         help='visualize and debug')
     parser.add_argument('--if_verbose', default=False, action='store_true', 
                         help='visualize per segment')
-                        
+
     # parallelization
     parser.add_argument('--batch_size', type=int, default=1,
                         help='batch size (default: 1)')
@@ -305,7 +305,7 @@ if __name__ == "__main__":
     #             metrics_all['ACC3DR_' + metric + f'_{k:d}'] = metrics_per_frame[metric + f'_{k:d}'].accr_data,
     #             metrics_all['OUTLIER_' + metric + f'_{k:d}'] = metrics_per_frame[metric + f'_{k:d}'].outlier_data,
     #             metrics_all['ROUTLIER_' + metric + f'_{k:d}'] = metrics_per_frame[metric + f'_{k:d}'].Routlier_data,
-                
+
     #     metrics_file = 'metrics_' + args.dataset + '_' + args.split
     #     if args.if_kiss_icp: metrics_file += f'_icp'
     #     metrics_file += '_' + args.identifier + '.npz'
@@ -313,6 +313,3 @@ if __name__ == "__main__":
     #     print(f'save metric file zip: {metrics_file}')
     print('end processing at: ', str(datetime.datetime.now()))
     print('total time (hours): ', (time.time()-start_time)/3600.0)
-    
-
-
